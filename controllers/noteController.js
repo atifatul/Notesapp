@@ -41,4 +41,25 @@ const deleteNote = asyncHandler(async (req, res) => {
   }
 });
 
-module.exports = { getNotes, createNote ,deleteNote};
+// @desc    Update a note
+// @route   PUT /api/notes/:id
+// @access  Public
+const updateNote = asyncHandler(async (req, res) => {
+  const { title, content, category } = req.body; // Naya data
+  const note = await Note.findById(req.params.id); // Purana note dhundo
+
+  if (note) {
+    // Agar naya title hai toh woh lo, nahi toh purana hi rehne do
+    note.title = title || note.title;
+    note.content = content || note.content;
+    note.category = category || note.category;
+
+    const updatedNote = await note.save(); // Save karo
+    res.json(updatedNote); // Wapas bhejo
+  } else {
+    res.status(404);
+    throw new Error("Note not found");
+  }
+});
+
+module.exports = { getNotes, createNote, deleteNote, updateNote };

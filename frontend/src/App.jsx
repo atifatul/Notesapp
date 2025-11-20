@@ -22,6 +22,8 @@ const App = () => {
   const [content, setContent] = useState("");
   const [category, setCategory] = useState("");
 
+  const [editId, setEditId] = useState(null);
+
   useEffect(() => {
     const fetchNotes = async () => {
       const { data } = await axios.get("/api/notes");
@@ -33,21 +35,39 @@ const App = () => {
 
   const submitHandler = async (e) => {
     e.preventDefault();
-
     if (!title || !content || !category) return;
-    try {
-      const { data } = await axios.post("/api/notes", {
-        title,
-        content,
-        category,
-      });
-      setNotes([...notes, data]);
 
+    try {
+      if (editId) {
+        // --- UPDATE LOGIC ---
+        const { data } = await axios.put(`/api/notes/${editId}`, {
+          title,
+          content,
+          category,
+        });
+
+        // Screen par update dikhane ke liye (Purani list mein se wo note dhundh ke replace kar do)
+        const updatedNotes = notes.map((note) =>
+          note._id === editId ? data : note
+        );
+        setNotes(updatedNotes);
+        setEditId(null); // Wapas Normal mode mein aa jao
+      } else {
+        // --- CREATE LOGIC (Purana wala) ---
+        const { data } = await axios.post("/api/notes", {
+          title,
+          content,
+          category,
+        });
+        setNotes([...notes, data]);
+      }
+
+      // Form clear karo
       setTitle("");
       setContent("");
       setCategory("");
     } catch (error) {
-      console.log("Error creating note:", error);
+      console.error("Error:", error);
     }
   };
 
@@ -66,6 +86,14 @@ const App = () => {
       }
     }
   };
+
+  const editHandler = (note) => {
+    setEditId(note._id); // React ko batao ki hum is note ko edit kar rahe hain
+    setTitle(note.title); // Form mein title bhar do
+    setContent(note.content); // Form mein content bhar do
+    setCategory(note.category); // Form mein category bhar do
+  };
+
   return (
     <>
       <Box p={5} bg="gray.50" minH="100vh">
@@ -100,8 +128,12 @@ const App = () => {
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
               />
-              <Button colorScheme="blue" type="submit" w="full">
-                Add Note
+              <Button
+                colorScheme={editId ? "green" : "blue"}
+                type="submit"
+                w="full"
+              >
+                {editId ? "Update" : "Add Note"}
               </Button>
             </VStack>
           </form>
@@ -129,15 +161,25 @@ const App = () => {
                   >
                     {note.category}
                   </Text>
-                  {/* DELETE BUTTON START */}
-                  <Button
-                    size="sm"
-                    colorScheme="red"
-                    onClick={() => deleteHandler(note._id)} // ID pass ki
-                  >
-                    Delete
-                  </Button>
-                  {/* DELETE BUTTON END */}
+                  <HStack>
+                    {" "}
+                    {/* Buttons ko group karne ke liye */}
+                    {/* EDIT BUTTON */}
+                    <Button
+                      size="sm"
+                      onClick={() => editHandler(note)} // Edit handler call kiya
+                    >
+                      Edit
+                    </Button>
+                    {/* DELETE BUTTON */}
+                    <Button
+                      size="sm"
+                      colorScheme="red"
+                      onClick={() => deleteHandler(note._id)}
+                    >
+                      Delete
+                    </Button>
+                  </HStack>
                 </HStack>
                 <Divider my={2} />
                 <Text>{note.content}</Text>
