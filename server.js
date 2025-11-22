@@ -1,7 +1,8 @@
 const express = require("express"); // 1. Express ko import kiya
 const dotenv = require("dotenv");
 const connectDB = require("./config/db");
-const noteRoutes=require("./routes/noteRoutes");
+const noteRoutes = require("./routes/noteRoutes");
+const userRoutes = require("./routes/userRoutes");
 
 dotenv.config();
 connectDB();
@@ -17,7 +18,8 @@ app.get("/", (req, res) => {
   res.send("API is running...");
 });
 
-app.use("/api/notes",noteRoutes);
+app.use("/api/notes", noteRoutes);
+app.use("/api/users", userRoutes);
 
 // 4. Server ko ek port par sunne (listen) ke liye bola
 const PORT = process.env.PORT || 5000;
