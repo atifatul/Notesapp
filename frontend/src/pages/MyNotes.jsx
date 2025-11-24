@@ -14,24 +14,28 @@ import {
   Button,
   Textarea,
   HStack,
+  SimpleGrid, // Grid layout ke liye
+  Container,
+  Badge,
+  Flex,
+  useToast,
 } from "@chakra-ui/react";
 
 const MyNotes = () => {
   const [notes, setNotes] = useState([]);
-
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [category, setCategory] = useState("");
-
   const [editId, setEditId] = useState(null);
   const [user, setUser] = useState(null);
 
   const navigate = useNavigate();
+  const toast = useToast();
+
+  // --- LOGIC SAME RAHEGA (Start) ---
   useEffect(() => {
     const userInfo = localStorage.getItem("userInfo");
-    if (!userInfo) {
-      navigate("/login");
-    }
+    if (!userInfo) navigate("/login");
   }, [navigate]);
 
   useEffect(() => {
@@ -45,20 +49,10 @@ const MyNotes = () => {
 
   useEffect(() => {
     const fetchNotes = async () => {
-      // Har baar call karne se pehle Token nikalna padega
       const userInfo = JSON.parse(localStorage.getItem("userInfo"));
-
-      // Agar user hi nahi hai toh fetch mat karo (Crash se bachne ke liye)
       if (!userInfo) return;
-
-      const config = {
-        headers: {
-          Authorization: `Bearer ${userInfo.token}`,
-        },
-      };
-
+      const config = { headers: { Authorization: `Bearer ${userInfo.token}` } };
       try {
-        // Config pass kiya URL ke baad
         const { data } = await axios.get("/api/notes", config);
         setNotes(data);
       } catch (error) {
@@ -66,56 +60,36 @@ const MyNotes = () => {
       }
     };
     fetchNotes();
-  }, []); // Dependency array empty hi rahega
+  }, []);
 
   const submitHandler = async (e) => {
     e.preventDefault();
     if (!title || !content || !category) return;
-
-    // Token nikalo
     const userInfo = JSON.parse(localStorage.getItem("userInfo"));
-    const config = {
-      headers: {
-        Authorization: `Bearer ${userInfo.token}`,
-      },
-    };
+    const config = { headers: { Authorization: `Bearer ${userInfo.token}` } };
 
     try {
       if (editId) {
-        // --- UPDATE LOGIC ---
-        // UPDATE mein config teesre number par jata hai (URL, Data, Config)
         const { data } = await axios.put(
           `/api/notes/${editId}`,
-          {
-            title,
-            content,
-            category,
-          },
+          { title, content, category },
           config
         );
-
-        // Screen par update dikhane ke liye (Purani list mein se wo note dhundh ke replace kar do)
         const updatedNotes = notes.map((note) =>
           note._id === editId ? data : note
         );
         setNotes(updatedNotes);
-        setEditId(null); // Wapas Normal mode mein aa jao
+        setEditId(null);
+        toast({ title: "Note Updated", status: "success", duration: 2000 });
       } else {
-        // --- CREATE LOGIC (Purana wala) ---
-        // CREATE mein config teesre number par jata hai
         const { data } = await axios.post(
           "/api/notes",
-          {
-            title,
-            content,
-            category,
-          },
+          { title, content, category },
           config
         );
         setNotes([...notes, data]);
+        toast({ title: "Note Added", status: "success", duration: 2000 });
       }
-
-      // Form clear karo
       setTitle("");
       setContent("");
       setCategory("");
@@ -125,28 +99,21 @@ const MyNotes = () => {
   };
 
   const logoutHandler = () => {
-    localStorage.removeItem("userInfo"); // Token faad diya
-    navigate("/"); // Home page par bhej diya
+    localStorage.removeItem("userInfo");
+    navigate("/");
   };
 
   const deleteHandler = async (id) => {
     if (window.confirm("Are you sure?")) {
-      // User se confirm karo
       try {
         const userInfo = JSON.parse(localStorage.getItem("userInfo"));
         const config = {
-          headers: {
-            Authorization: `Bearer ${userInfo.token}`,
-          },
+          headers: { Authorization: `Bearer ${userInfo.token}` },
         };
-        // Backend call: URL mein ID jod kar bheji
-        // DELETE mein config second argument hota hai (URL, Config)
-        // Note: Delete mein koi body/data nahi jata
         await axios.delete(`/api/notes/${id}`, config);
-
-        // UI Update: Jo delete hua, usse filter karke hata do
         const filteredNotes = notes.filter((note) => note._id !== id);
         setNotes(filteredNotes);
+        toast({ title: "Note Deleted", status: "info", duration: 2000 });
       } catch (error) {
         console.error("Error deleting note:", error);
       }
@@ -154,114 +121,192 @@ const MyNotes = () => {
   };
 
   const editHandler = (note) => {
-    setEditId(note._id); // React ko batao ki hum is note ko edit kar rahe hain
-    setTitle(note.title); // Form mein title bhar do
-    setContent(note.content); // Form mein content bhar do
-    setCategory(note.category); // Form mein category bhar do
+    setEditId(note._id);
+    setTitle(note.title);
+    setContent(note.content);
+    setCategory(note.category);
+    // User ko scroll karke form par le aao
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
+  // --- LOGIC SAME RAHEGA (End) ---
 
   return (
-    <>
-      <Box p={5} bg="gray.50" minH="100vh">
-        <HStack justify="space-between" mb={6}>
-          <Heading color="blue.600">
-            {/* Agar user hai toh uska naam dikhao, nahi toh bas 'My Notes' */}
-            {user ? `Welcome Back, ${user.name} 👋` : "My Notes App"}
+    <Box
+      minH="100vh"
+      // 1. Theme Gradient Background
+      bgGradient="linear(to-br, purple.600, blue.500, teal.300)"
+      py={10}
+      px={4}
+    >
+      <Container maxW="6xl">
+        {" "}
+        {/* Container taaki content centre mein rahe */}
+        {/* --- HEADER --- */}
+        <Flex
+          justify="space-between"
+          align="center"
+          mb={10}
+          bg="whiteAlpha.200"
+          p={4}
+          borderRadius="xl"
+          backdropFilter="blur(5px)"
+        >
+          <Heading color="white" size="lg">
+            {user ? `👋 Hi, ${user.name.split(" ")[0]}` : "My Notes"}
           </Heading>
-
-          <Button colorScheme="red" onClick={logoutHandler}>
+          <Button
+            colorScheme="red"
+            variant="solid"
+            size="sm"
+            onClick={logoutHandler}
+            _hover={{ bg: "red.600", transform: "scale(1.05)" }}
+          >
             Logout
           </Button>
-        </HStack>
-
-        {/* --- FORM START --- */}
+        </Flex>
+        {/* --- CREATE/EDIT FORM (Glassmorphism) --- */}
         <Box
-          w="500px"
+          w="100%"
+          maxW="600px"
           mx="auto"
-          mb={10}
-          p={5}
-          bg="white"
-          boxShadow="lg"
-          borderRadius="md"
+          mb={12}
+          p={6}
+          bg="whiteAlpha.900" // Almost white
+          backdropFilter="blur(10px)"
+          borderRadius="2xl"
+          boxShadow="2xl"
         >
+          <Heading size="md" mb={4} textAlign="center" color="gray.700">
+            {editId ? "Update Note" : "Create a New Note"}
+          </Heading>
           <form onSubmit={submitHandler}>
-            <VStack spacing={4}>
+            <VStack spacing={3}>
               <Input
+                variant="filled"
+                bg="gray.50"
                 placeholder="Title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
+                size="lg"
+                fontWeight="bold"
+                _focus={{ bg: "white", borderColor: "purple.500" }}
               />
               <Textarea
-                placeholder="Content"
+                variant="filled"
+                bg="gray.50"
+                placeholder="What's on your mind?"
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
+                size="lg"
+                rows={3}
+                _focus={{ bg: "white", borderColor: "purple.500" }}
               />
               <Input
-                placeholder="Category (e.g., Work, Personal)"
+                variant="filled"
+                bg="gray.50"
+                placeholder="Category (e.g. Work, Ideas)"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
+                _focus={{ bg: "white", borderColor: "purple.500" }}
               />
               <Button
-                colorScheme={editId ? "green" : "blue"}
+                bgGradient={
+                  editId
+                    ? "linear(to-r, orange.400, red.400)"
+                    : "linear(to-r, blue.500, purple.600)"
+                }
+                color="white"
                 type="submit"
                 w="full"
+                size="lg"
+                borderRadius="full"
+                _hover={{
+                  transform: "translateY(-2px)",
+                  boxShadow: "lg",
+                }}
               >
-                {editId ? "Update" : "Add Note"}
+                {editId ? "Update Note" : "Add Note"}
               </Button>
             </VStack>
           </form>
         </Box>
-        {/* --- FORM END --- */}
-
-        <VStack spacing={4} align="stretch" maxW="800px" mx="auto">
+        <Divider mb={8} borderColor="whiteAlpha.400" />
+        {/* --- NOTES GRID (Masonry Style) --- */}
+        {/* SimpleGrid automatically columns manage karega */}
+        <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
           {notes.map((note) => (
             <Card
               key={note._id}
               bg="white"
-              boxShadow="sm"
-              _hover={{ boxShadow: "md" }}
+              borderRadius="xl"
+              boxShadow="lg"
+              transition="all 0.2s" // Smooth animation
+              _hover={{ transform: "translateY(-5px)", boxShadow: "2xl" }} // Hawa mein uthega
+              overflow="hidden"
             >
+              {/* Colored Top Border for visual flair */}
+              <Box h="6px" bgGradient="linear(to-r, purple.400, blue.400)" />
+
               <CardBody>
-                <HStack justify="space-between">
-                  <Heading size="md">{note.title}</Heading>
-                  <Text
-                    fontSize="xs"
-                    bg="green.100"
-                    color="green.800"
+                <HStack justify="space-between" mb={3}>
+                  <Badge
+                    colorScheme="purple"
+                    variant="subtle"
                     px={2}
                     py={1}
-                    borderRadius="full"
+                    borderRadius="md"
+                    fontSize="0.8em"
                   >
                     {note.category}
-                  </Text>
-                  <HStack>
-                    {" "}
-                    {/* Buttons ko group karne ke liye */}
-                    {/* EDIT BUTTON */}
+                  </Badge>
+
+                  {/* Action Buttons */}
+                  <HStack spacing={2}>
                     <Button
-                      size="sm"
-                      onClick={() => editHandler(note)} // Edit handler call kiya
+                      size="xs"
+                      colorScheme="blue"
+                      variant="ghost"
+                      onClick={() => editHandler(note)}
                     >
                       Edit
                     </Button>
-                    {/* DELETE BUTTON */}
                     <Button
-                      size="sm"
+                      size="xs"
                       colorScheme="red"
+                      variant="ghost"
                       onClick={() => deleteHandler(note._id)}
                     >
                       Delete
                     </Button>
                   </HStack>
                 </HStack>
-                <Divider my={2} />
-                <Text>{note.content}</Text>
+
+                <Heading size="md" mb={2} color="gray.800">
+                  {note.title}
+                </Heading>
+
+                <Text color="gray.600" noOfLines={4}>
+                  {" "}
+                  {/* 4 lines ke baad ... aa jayega */}
+                  {note.content}
+                </Text>
+
+                <Text fontSize="xs" color="gray.400" mt={4} textAlign="right">
+                  {/* Date dikhane ke liye (Optional) */}
+                  {new Date(note.createdAt).toLocaleDateString()}
+                </Text>
               </CardBody>
             </Card>
           ))}
-        </VStack>
-      </Box>
-    </>
+        </SimpleGrid>
+        {/* Agar koi note nahi hai toh */}
+        {notes.length === 0 && (
+          <Text textAlign="center" color="whiteAlpha.800" fontSize="xl" mt={10}>
+            No notes found. Create one above! 📝
+          </Text>
+        )}
+      </Container>
+    </Box>
   );
 };
 

@@ -1,20 +1,28 @@
 import { useState } from "react";
-import { 
-  Box, Button, Input, VStack, Heading, Text, useToast 
+import {
+  Box,
+  Button,
+  Input,
+  VStack,
+  Heading,
+  Text,
+  useToast,
+  FormControl,
+  FormLabel,
 } from "@chakra-ui/react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom"; // Page redirect karne ke liye
+import { useNavigate, Link as RouterLink } from "react-router-dom";
 
 const LoginPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false); // Button par loading dikhane ke liye
+  const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
-  const toast = useToast(); // Notification ke liye (Chakra UI ka feature)
+  const toast = useToast();
 
   const submitHandler = async () => {
-    setLoading(true); // Loading shuru
+    setLoading(true);
     if (!email || !password) {
       toast({
         title: "Please Fill all the Fields",
@@ -28,7 +36,6 @@ const LoginPage = () => {
     }
 
     try {
-      // 1. API Call (Backend se baat karo)
       const config = {
         headers: {
           "Content-type": "application/json",
@@ -41,9 +48,6 @@ const LoginPage = () => {
         config
       );
 
-      // 2. Success! Data ko Local Storage mein save karo
-      // JSON.stringify isliye kyunki LocalStorage sirf Strings store kar sakta hai, Object nahi.
-      // yeh key value pair main store hoge userinfo key hai and woh data token aur password value hai 
       localStorage.setItem("userInfo", JSON.stringify(data));
 
       toast({
@@ -55,15 +59,11 @@ const LoginPage = () => {
       });
 
       setLoading(false);
-      
-      // 3. User ko Notes page par bhej do
       navigate("/mynotes");
-
     } catch (error) {
-      // Agar password galat hai
       toast({
         title: "Error Occured!",
-        description: error.response.data.message, // Backend ka error message
+        description: error.response?.data?.message || "Something went wrong",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -74,34 +74,102 @@ const LoginPage = () => {
   };
 
   return (
-    <Box display="flex" justifyContent="center" alignItems="center" minH="100vh" bg="gray.100">
-      <Box bg="white" p={8} borderRadius="lg" boxShadow="lg" w="100%" maxW="400px">
-        <VStack spacing={4}>
-          <Heading fontSize="2xl">Login</Heading>
-          
-          <Input 
-            placeholder="Email Address" 
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          <Input 
-            placeholder="Password" 
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          
-          <Button 
-            colorScheme="blue" 
-            w="100%" 
+    <Box
+      minH="100vh"
+      // 1. Consistent Gradient Background
+      bgGradient="linear(to-br, purple.600, blue.500, teal.300)"
+      display="flex"
+      justifyContent="center"
+      alignItems="center"
+      px={4}
+    >
+      <Box
+        // 2. Glassmorphism Card
+        bg="whiteAlpha.900"
+        backdropFilter="blur(10px)"
+        p={8}
+        borderRadius="2xl"
+        boxShadow="2xl"
+        w="100%"
+        maxW="400px"
+      >
+        <VStack spacing={6}>
+          {/* Header */}
+          <VStack spacing={2} textAlign="center">
+            <Heading
+              as="h2"
+              size="xl"
+              bgGradient="linear(to-r, blue.600, purple.600)"
+              bgClip="text"
+            >
+              Welcome Back
+            </Heading>
+            <Text fontSize="md" color="gray.500">
+              Enter your credentials to access your notes
+            </Text>
+          </VStack>
+
+          {/* Form Fields */}
+          <VStack spacing={4} w="100%">
+            <FormControl>
+              <FormLabel ml={1}>Email Address</FormLabel>
+              <Input
+                variant="filled" // 3. Modern Filled Input style
+                placeholder="Enter your email"
+                bg="gray.100"
+                _focus={{ bg: "white", borderColor: "purple.500" }}
+                size="lg"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </FormControl>
+
+            <FormControl>
+              <FormLabel ml={1}>Password</FormLabel>
+              <Input
+                variant="filled"
+                placeholder="Enter your password"
+                type="password"
+                bg="gray.100"
+                _focus={{ bg: "white", borderColor: "purple.500" }}
+                size="lg"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </FormControl>
+          </VStack>
+
+          {/* 4. Gradient Button with Hover Effect */}
+          <Button
+            bgGradient="linear(to-r, blue.500, purple.600)"
+            color="white"
+            size="lg"
+            w="100%"
+            borderRadius="full"
+            _hover={{
+              bgGradient: "linear(to-r, blue.600, purple.700)",
+              transform: "translateY(-2px)",
+              boxShadow: "lg",
+            }}
+            _active={{ transform: "translateY(0)" }}
             onClick={submitHandler}
-            isLoading={loading} // Chakra UI ka magic prop
+            isLoading={loading}
           >
             Login
           </Button>
-          
-          <Text fontSize="sm">
-             New Customer? <a href="/register" style={{color: "blue"}}>Register Here</a>
+
+          {/* Footer Link */}
+          <Text fontSize="sm" color="gray.600">
+            Don't have an account?{" "}
+            <Text
+              as={RouterLink}
+              to="/register"
+              color="purple.600"
+              fontWeight="bold"
+              _hover={{ textDecoration: "underline" }}
+            >
+              Register Here
+            </Text>
           </Text>
         </VStack>
       </Box>
