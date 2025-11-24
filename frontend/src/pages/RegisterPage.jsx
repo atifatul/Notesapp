@@ -131,7 +131,7 @@ const RegisterPage = () => {
               <FormLabel ml={1}>Full Name</FormLabel>
               <Input
                 variant="filled"
-                placeholder="John Doe"
+                placeholder="Example : Atif"
                 bg="gray.100"
                 _focus={{ bg: "white", borderColor: "purple.500" }}
                 value={name}
