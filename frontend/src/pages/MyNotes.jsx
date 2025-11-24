@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 import {
   Box,
@@ -23,28 +24,75 @@ const MyNotes = () => {
   const [category, setCategory] = useState("");
 
   const [editId, setEditId] = useState(null);
+  const [user, setUser] = useState(null);
+
+  const navigate = useNavigate();
+  useEffect(() => {
+    const userInfo = localStorage.getItem("userInfo");
+    if (!userInfo) {
+      navigate("/login");
+    }
+  }, [navigate]);
+
+  useEffect(() => {
+    const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+    if (!userInfo) {
+      navigate("/login");
+    } else {
+      setUser(userInfo);
+    }
+  }, [navigate]);
 
   useEffect(() => {
     const fetchNotes = async () => {
-      const { data } = await axios.get("/api/notes");
-      console.log(data);
-      setNotes(data);
+      // Har baar call karne se pehle Token nikalna padega
+      const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+
+      // Agar user hi nahi hai toh fetch mat karo (Crash se bachne ke liye)
+      if (!userInfo) return;
+
+      const config = {
+        headers: {
+          Authorization: `Bearer ${userInfo.token}`,
+        },
+      };
+
+      try {
+        // Config pass kiya URL ke baad
+        const { data } = await axios.get("/api/notes", config);
+        setNotes(data);
+      } catch (error) {
+        console.error(error);
+      }
     };
     fetchNotes();
-  }, []);
+  }, []); // Dependency array empty hi rahega
 
   const submitHandler = async (e) => {
     e.preventDefault();
     if (!title || !content || !category) return;
 
+    // Token nikalo
+    const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+    const config = {
+      headers: {
+        Authorization: `Bearer ${userInfo.token}`,
+      },
+    };
+
     try {
       if (editId) {
         // --- UPDATE LOGIC ---
-        const { data } = await axios.put(`/api/notes/${editId}`, {
-          title,
-          content,
-          category,
-        });
+        // UPDATE mein config teesre number par jata hai (URL, Data, Config)
+        const { data } = await axios.put(
+          `/api/notes/${editId}`,
+          {
+            title,
+            content,
+            category,
+          },
+          config
+        );
 
         // Screen par update dikhane ke liye (Purani list mein se wo note dhundh ke replace kar do)
         const updatedNotes = notes.map((note) =>
@@ -54,11 +102,16 @@ const MyNotes = () => {
         setEditId(null); // Wapas Normal mode mein aa jao
       } else {
         // --- CREATE LOGIC (Purana wala) ---
-        const { data } = await axios.post("/api/notes", {
-          title,
-          content,
-          category,
-        });
+        // CREATE mein config teesre number par jata hai
+        const { data } = await axios.post(
+          "/api/notes",
+          {
+            title,
+            content,
+            category,
+          },
+          config
+        );
         setNotes([...notes, data]);
       }
 
@@ -71,12 +124,25 @@ const MyNotes = () => {
     }
   };
 
+  const logoutHandler = () => {
+    localStorage.removeItem("userInfo"); // Token faad diya
+    navigate("/"); // Home page par bhej diya
+  };
+
   const deleteHandler = async (id) => {
     if (window.confirm("Are you sure?")) {
       // User se confirm karo
       try {
+        const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+        const config = {
+          headers: {
+            Authorization: `Bearer ${userInfo.token}`,
+          },
+        };
         // Backend call: URL mein ID jod kar bheji
-        await axios.delete(`/api/notes/${id}`);
+        // DELETE mein config second argument hota hai (URL, Config)
+        // Note: Delete mein koi body/data nahi jata
+        await axios.delete(`/api/notes/${id}`, config);
 
         // UI Update: Jo delete hua, usse filter karke hata do
         const filteredNotes = notes.filter((note) => note._id !== id);
@@ -97,9 +163,16 @@ const MyNotes = () => {
   return (
     <>
       <Box p={5} bg="gray.50" minH="100vh">
-        <Heading mb={6} textAlign="center" color="blue.600">
-          My Notes App
-        </Heading>
+        <HStack justify="space-between" mb={6}>
+          <Heading color="blue.600">
+            {/* Agar user hai toh uska naam dikhao, nahi toh bas 'My Notes' */}
+            {user ? `Welcome Back, ${user.name} 👋` : "My Notes App"}
+          </Heading>
+
+          <Button colorScheme="red" onClick={logoutHandler}>
+            Logout
+          </Button>
+        </HStack>
 
         {/* --- FORM START --- */}
         <Box
