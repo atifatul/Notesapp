@@ -3,7 +3,7 @@ const dotenv = require("dotenv");
 const connectDB = require("./config/db");
 const noteRoutes = require("./routes/noteRoutes");
 const userRoutes = require("./routes/userRoutes");
-
+const cors=require("cors");
 dotenv.config();
 connectDB();
 
@@ -11,6 +11,7 @@ const Note = require("./models/noteModel");
 
 const app = express(); // 2. Express ka ek variable/app banaya
 
+app.use(cors());
 app.use(express.json());
 
 // 3. Ek basic API route banaya test karne ke liye
