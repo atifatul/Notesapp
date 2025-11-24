@@ -15,6 +15,11 @@ const noteSchema = mongoose.Schema(
       type: String,
       required: true,
     },
+    user: {
+      type: mongoose.Schema.Types.ObjectId, // Yeh user ki _id store karega
+      required: true,
+      ref: "User", // Bata raha hai ki yeh ID 'User' model se aayi hai
+    },
   },
   {
     timestamps: true, // 2. Yeh bahut kaam ki cheez hai

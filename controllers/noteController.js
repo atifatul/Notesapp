@@ -5,8 +5,11 @@ const asyncHandler = require("express-async-handler");
 // @route   GET /api/notes
 // @access  Public
 const getNotes = asyncHandler(async (req, res) => {
-  const notes = await Note.find(); // DB se saara data dhundo
-  res.json(notes); // JSON format mein wapas bhejo
+  // Purana Code: const notes = await Note.find();
+
+  // Naya Code: Sirf wo notes jinki 'user' field mein meri ID hai
+  const notes = await Note.find({ user: req.user._id });
+  res.json(notes);
 });
 
 // @desc    Create a note
@@ -20,7 +23,7 @@ const createNote = asyncHandler(async (req, res) => {
     throw new Error("Please fill all the fields");
   }
 
-  const note = new Note({ title, content, category });
+  const note = new Note({ user: req.user._id, title, content, category });
   const createdNote = await note.save(); // DB mein save karo
 
   res.status(201).json(createdNote);

@@ -1,5 +1,6 @@
 const asyncHandler = require("express-async-handler");
 const User = require("../models/userModel");
+const generateToken=require("../utils/generateToken");
 
 // @desc    Register a new user
 // @route   POST /api/users
@@ -35,6 +36,7 @@ const registerUser = asyncHandler(async (req, res) => {
       name: user.name,
       email: user.email,
       pic: user.pic,
+      token: generateToken(user._id),
       // Token baad mein add karenge
     });
   } else {
@@ -43,4 +45,29 @@ const registerUser = asyncHandler(async (req, res) => {
   }
 });
 
-module.exports = { registerUser };
+// @desc    Auth user & get token
+// @route   POST /api/users/login
+// @access  Public
+
+const authUser = asyncHandler(async (req, res) => {
+  const { email, password } = req.body;
+
+  // User ko email se dhundo
+  const user = await User.findOne({ email });
+
+  // Check: User mila? AND Password match hua?
+  if (user && (await user.matchPassword(password))) {
+    res.json({
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      pic: user.pic,
+      token: generateToken(user._id), // Yahan Token generate hua! 🎫
+    });
+  } else {
+    res.status(401);
+    throw new Error("Invalid Email or Password");
+  }
+});
+
+module.exports = { registerUser, authUser};
